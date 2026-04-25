@@ -100,4 +100,11 @@ Project-Nusrat/
 Feel free to fork this project, submit pull requests, or use the physics engine to build your own custom desktop companions! If you add new animations or AI features, I'd love to see them.
 
 ## 📝 License
-This project is open-source and available under the MIT License.
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+<p align="center">
+  Made with ❤️ by Abid for a wonderful 2027!
+</p>
