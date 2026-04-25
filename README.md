@@ -4,7 +4,7 @@
 
 Project Nusrat brings a classic "Shimeji" desktop pet to life by giving it a real-time physics engine, full screen-edge awareness, and a conversational AI brain. She drops onto your desktop, roams around your monitor, climbs your screen edges, and listens to your voice commands.
 
-![Project Nusrat Screenshot](link-to-your-image-here.png) *(Note: Add a screenshot or GIF of her walking on your screen here!)*
+
 
 ## ✨ Features
 
