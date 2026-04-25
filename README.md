@@ -106,5 +106,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <p align="center">
-  Made with ❤️ by Abid for a wonderful 2027!
+  Made with ❤️ by Abid!
 </p>
