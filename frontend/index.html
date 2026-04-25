@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { 
+            background: transparent; 
+            margin: 0; 
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+#waifu {
+    width: 150px; 
+    height: 150px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+    
+    position: absolute; /* Absolute allows X/Y coordinates */
+    top: 0px;  /* Changed from bottom to top! */
+    left: 0px; 
+    
+    -webkit-app-region: no-drag; /* We will handle dragging in JS now */
+    cursor: grab;
+    z-index: 1000;
+}
+
+        /* NEW: Breathing and slight tilting */
+        @keyframes idle {
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg) scaleY(1); 
+            }
+            50% { 
+                transform: translateY(-8px) rotate(1deg) scaleY(1.02); 
+            }
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); /* Expands slightly */ }
+        }
+
+
+        #bubble {
+    position: absolute;
+    /* CHANGE 1: Move it down so it is visible inside the window */
+    bottom: 50px; 
+    left: 50%;
+    transform: translateX(-50%);
+    
+    /* CHANGE 2: Make it look like a speech box */
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 15px;
+    border: 2px solid #ff69b4; /* Pink border */
+    
+    display: none; /* Hidden by default */
+    font-family: sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    width: 250px; /* Wider text area */
+    z-index: 1000;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+        
+    </style>
+</head>
+<body>
+    <div id="bubble">Hello Abid! I'm ready.</div>
+    <div id="waifu"></div>
+
+    <script src="./node_modules/socket.io-client/dist/socket.io.js"></script>
+<script>
+        // ==========================================
+        // 1. ELECTRON & PYTHON CONNECTIONS
+        // ==========================================
+        const { ipcRenderer } = require('electron');
+        const waifuDiv = document.getElementById('waifu');
+        const bubble = document.getElementById('bubble');
+        const socket = io('http://localhost:5000');
+
+        socket.on('expression', (data) => {
+            if (data.mood === 'happy') {
+                waifuDiv.style.transform = "translateY(-20px)";
+                setTimeout(() => waifuDiv.style.transform = "translateY(0)", 200);
+            }
+        });
+
+        socket.on('response', (data) => {
+            bubble.innerText = data.text;
+            bubble.style.display = 'block';
+            setTimeout(() => { bubble.style.display = 'none'; }, 4000);
+        });
+
+        // ==========================================
+        // 2. THE MEGA ANIMATION ARRAYS
+        // ==========================================
+        const framesIdle = ['./assets/shime1.png', './assets/shime1a.png'];
+        const framesWalk = ['./assets/shime2.png', './assets/shime3.png', './assets/shime3a.png', './assets/shime3b.png', './assets/shime3ba.png', './assets/shime3c.png', './assets/shime3d.png'];
+        const framesRun = ['./assets/shime3e.png', './assets/shime3f.png', './assets/shime3g.png', './assets/shime3h.png', './assets/shime3i.png', './assets/shime3j.png'];
+        const framesBePet = ['./assets/shimePet14.png'];
+        const framesPetAction = ['./assets/shimePet1.png', './assets/shimePet2.png', './assets/shimePet3.png', './assets/shimePet4.png', './assets/shimePet5.png', './assets/shimePet6.png', './assets/shimePet7.png', './assets/shimePet8.png', './assets/shimePet9.png', './assets/shimePet10.png', './assets/shimePet11.png', './assets/shimePet12.png', './assets/shimePet13.png', './assets/shimePet14.png'];
+        const framesLayDownAction = ['./assets/shime30.png', './assets/shime31.png'];
+        const framesStandUpAction = ['./assets/shime15.png', './assets/shime16.png', './assets/shime17.png', './assets/shime26.png', './assets/shime27.png', './assets/shime28.png', './assets/shime29.png', './assets/shime29a.png', './assets/shime29b.png'];
+        const framesWatchAction = ['./assets/shime33.png'];
+        const framesSprawl = ['./assets/shime20.png', './assets/shime21.png'];
+        const framesGrabCeiling = ['./assets/shime23.png', './assets/shime23a.png'];
+        const framesClimbCeiling = ['./assets/shime25.png', './assets/shime23.png', './assets/shime23a.png', './assets/shime24.png'];
+        const framesGrabWall = ['./assets/shime13.png', './assets/shime13a.png'];
+        const framesClimbWall = ['./assets/shime14.png', './assets/shime13.png', './assets/shime13a.png', './assets/shime12.png'];
+        const framesPinched = ['./assets/shime9.png', './assets/shime7.png', './assets/shime5.png', './assets/shime5a.png', './assets/shime5ab.png', './assets/shime6.png', './assets/shime8.png', './assets/shime10.png'];
+        const framesFall = ['./assets/shime4.png'];
+        const framesBounce = ['./assets/shime18.png', './assets/shime19.png', './assets/shime19a.png'];
+        const framesSit = ['./assets/shime11.png', './assets/shime11a.png'];
+        const framesGrab = ['./assets/shime5.png', './assets/shime5a.png'];
+
+        let currentFrameIndex = 0;
+        let animationTimer = null;
+
+        function playAnimation(frameArray, speedMs) {
+            if (animationTimer) clearInterval(animationTimer);
+            currentFrameIndex = 0;
+            waifuDiv.style.backgroundImage = `url('${frameArray[currentFrameIndex]}')`;
+            
+            animationTimer = setInterval(() => {
+                currentFrameIndex = (currentFrameIndex + 1) % frameArray.length;
+                waifuDiv.style.backgroundImage = `url('${frameArray[currentFrameIndex]}')`;
+            }, speedMs);
+        }
+
+        playAnimation(framesIdle, 400);
+
+        // ==========================================
+        // 3. REAL SHIMEJI PHYSICS ENGINE
+        // ==========================================
+        let x = window.innerWidth / 2; 
+        let y = window.innerHeight / 2; 
+        let velocityY = 0;
+        const gravity = 0.6; 
+        let state = 'falling'; 
+        let targetX = x; 
+        let targetY = y;
+
+        // ==========================================
+        // 4. MOUSE INTERACTIONS
+        // ==========================================
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        waifuDiv.addEventListener('mouseenter', () => ipcRenderer.send('set-ignore-mouse-events', false));
+        waifuDiv.addEventListener('mouseleave', () => {
+            if (!isDragging) ipcRenderer.send('set-ignore-mouse-events', true, { forward: true });
+        });
+
+        // DRAG AND DROP
+        waifuDiv.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            state = 'dragging';
+            playAnimation(framesPinched, 150); 
+            waifuDiv.style.transform = "scaleX(1)"; 
+            offsetX = e.clientX - x;
+            offsetY = e.clientY - y;
+            waifuDiv.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                x = e.clientX - offsetX;
+                y = e.clientY - offsetY;
+                waifuDiv.style.left = x + 'px';
+                waifuDiv.style.top = y + 'px';
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                waifuDiv.style.cursor = 'grab';
+                state = 'falling';
+                velocityY = 0; 
+                playAnimation(framesFall, 200);
+                ipcRenderer.send('set-ignore-mouse-events', true, { forward: true });
+            }
+        });
+
+        // --- NEW: SINGLE CLICK TO PET ---
+        waifuDiv.addEventListener('click', () => {
+            if (!isDragging && state === 'idle') {
+                state = 'petting'; // Temporarily stop physics
+                playAnimation(framesPetAction, 150); // Play your Panda animation!
+                
+                // Go back to idle after 3 seconds
+                setTimeout(() => { 
+                    if(state === 'petting') { 
+                        state = 'idle'; 
+                        playAnimation(framesIdle, 400); 
+                    }
+                }, 3000);
+            }
+        });
+
+        // DOUBLE CLICK TO TALK
+        waifuDiv.addEventListener('dblclick', () => {
+            state = 'idle';
+            playAnimation(framesWatchAction, 400); 
+            socket.emit('process_voice', { text: "manual_trigger" });
+        });
+
+        // ==========================================
+        // 5. THE PHYSICS, CLIMBING & COLLISION LOOP
+        // ==========================================
+        function updatePhysics() {
+            if (state !== 'dragging' && state !== 'petting') {
+                const floorY = window.innerHeight - 150; 
+                const rightWallX = window.innerWidth - 150;
+                const leftWallX = 0;
+                const ceilingY = 0;
+
+                // --- GRAVITY & BOUNCING ---
+                if (state === 'falling') {
+                    velocityY += gravity; 
+                    y += velocityY;       
+                    
+                    if (y >= floorY) {
+                        y = floorY; 
+                        velocityY = 0;
+                        state = 'idle';
+                        playAnimation(framesBounce, 150);
+                        setTimeout(() => playAnimation(framesStandUpAction, 150), 450);
+                        setTimeout(() => { if(state === 'idle') playAnimation(framesIdle, 400); }, 1800);
+                    }
+                } 
+                // --- FLOOR WALKING/RUNNING & WALL COLLISION ---
+                else if (state === 'walking' || state === 'running') {
+                    let dx = targetX - x;
+                    let speed = (state === 'running') ? 6 : 2; 
+                    
+                    if (Math.abs(dx) < speed + 1) {
+                        state = 'idle';
+                        playAnimation(framesIdle, 400);
+                    } else {
+                        if (dx > 0) {
+                            x += speed; waifuDiv.style.transform = "scaleX(-1)"; 
+                            if (x >= rightWallX) { 
+                                x = rightWallX; 
+                                state = 'idleWallRight'; 
+                                playAnimation(framesGrabWall, 400); 
+                            }
+                        } else {
+                            x -= speed; waifuDiv.style.transform = "scaleX(1)"; 
+                            if (x <= leftWallX) { 
+                                x = leftWallX; 
+                                state = 'idleWallLeft'; 
+                                playAnimation(framesGrabWall, 400); 
+                            }
+                        }
+                    }
+                }
+                // --- WALL CLIMBING ---
+                else if (state === 'climbingWallLeft' || state === 'climbingWallRight') {
+                    let dy = targetY - y;
+                    let speed = 2;
+                    
+                    if (Math.abs(dy) < speed + 1) {
+                        state = (state === 'climbingWallLeft') ? 'idleWallLeft' : 'idleWallRight';
+                        playAnimation(framesGrabWall, 400);
+                    } else {
+                        y += (dy > 0) ? speed : -speed;
+                        
+                        if (y <= ceilingY) {
+                            y = ceilingY;
+                            state = 'idleCeiling';
+                            playAnimation(framesGrabCeiling, 400);
+                        } else if (y >= floorY) {
+                            y = floorY;
+                            state = 'idle';
+                            playAnimation(framesIdle, 400);
+                        }
+                    }
+                }
+                // --- CEILING CRAWLING ---
+                else if (state === 'climbingCeiling') {
+                    let dx = targetX - x;
+                    let speed = 2;
+                    
+                    if (Math.abs(dx) < speed + 1) {
+                        state = 'idleCeiling';
+                        playAnimation(framesGrabCeiling, 400);
+                    } else {
+                        if (dx > 0) {
+                            x += speed; waifuDiv.style.transform = "scaleX(-1)"; 
+                            if (x >= rightWallX) { x = rightWallX; state = 'idleWallRight'; playAnimation(framesGrabWall, 400); }
+                        } else {
+                            x -= speed; waifuDiv.style.transform = "scaleX(1)"; 
+                            if (x <= leftWallX) { x = leftWallX; state = 'idleWallLeft'; playAnimation(framesGrabWall, 400); }
+                        }
+                    }
+                }
+
+                waifuDiv.style.left = x + 'px';
+                waifuDiv.style.top = y + 'px';
+            }
+            requestAnimationFrame(updatePhysics); 
+        }
+
+        // ==========================================
+        // 6. THE ADVANCED AI BRAIN
+        // ==========================================
+        function think() {
+            let chance = Math.random();
+
+            // When she is on the FLOOR
+            if (state === 'idle') {
+                if (chance < 0.20) {
+                    // --- NEW: Force her to sprint all the way off screen so she HITS A WALL! ---
+                    targetX = (Math.random() > 0.5) ? window.innerWidth + 200 : -200; 
+                    state = 'running';
+                    playAnimation(framesRun, 100);
+                } 
+                else if (chance < 0.30) {
+                    targetX = Math.random() * window.innerWidth;
+                    state = 'walking';
+                    playAnimation(framesWalk, 150);
+                }
+                else if (chance < 0.40) { playAnimation(framesSit, 400); }
+                else if (chance < 0.50) { playAnimation(framesLayDownAction, 400); }
+                else if (chance < 0.60) { playAnimation(framesSprawl, 500); }
+                else if (chance < 0.70) { playAnimation(framesBePet, 400); } // Begs for pets naturally
+                else { playAnimation(framesIdle, 400); }
+            }
+            // When she is stuck to a WALL
+            else if (state === 'idleWallLeft' || state === 'idleWallRight') {
+                if (chance < 0.5) {
+                    targetY = Math.random() * window.innerHeight; // Climb up or down
+                    state = (state === 'idleWallLeft') ? 'climbingWallLeft' : 'climbingWallRight';
+                    playAnimation(framesClimbWall, 200);
+                } else {
+                    // Let go and drop!
+                    state = 'falling';
+                    waifuDiv.style.transform = "scaleX(1)"; 
+                    playAnimation(framesFall, 200);
+                }
+            }
+            // When she is stuck to the CEILING
+            else if (state === 'idleCeiling') {
+                if (chance < 0.5) {
+                    targetX = Math.random() * window.innerWidth; // Crawl left or right
+                    state = 'climbingCeiling';
+                    playAnimation(framesClimbCeiling, 200);
+                } else {
+                    // Let go and drop!
+                    state = 'falling';
+                    waifuDiv.style.transform = "scaleX(1)"; 
+                    playAnimation(framesFall, 200);
+                }
+            }
+        }
+
+        requestAnimationFrame(updatePhysics); 
+        setInterval(think, 3000); 
+
+    </script>
+</body>
+</html>
