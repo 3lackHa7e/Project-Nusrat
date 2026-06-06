@@ -94,7 +94,10 @@
         socket.on('response', (data) => {
             bubble.innerText = data.text;
             bubble.style.display = 'block';
-            setTimeout(() => { bubble.style.display = 'none'; }, 4000);
+            
+            // Smart timer: Keeps the bubble visible longer for longer sentences
+            let readTime = Math.max(4000, data.text.length * 80); 
+            setTimeout(() => { bubble.style.display = 'none'; }, readTime);
         });
 
         // ==========================================
@@ -146,26 +149,38 @@
         let targetX = x; 
         let targetY = y;
 
+       
         // ==========================================
-        // 4. MOUSE INTERACTIONS
+        // 4. MOUSE DRAG, GHOST MODE & MICROPHONE
         // ==========================================
         let isDragging = false;
         let offsetX = 0;
         let offsetY = 0;
+        
+        // NEW: Variables to track if you actually dragged her or just clicked
+        let startDragX = 0; 
+        let startDragY = 0;
 
         waifuDiv.addEventListener('mouseenter', () => ipcRenderer.send('set-ignore-mouse-events', false));
+        
         waifuDiv.addEventListener('mouseleave', () => {
             if (!isDragging) ipcRenderer.send('set-ignore-mouse-events', true, { forward: true });
         });
 
-        // DRAG AND DROP
+        // MOUSE DOWN (Start of a click OR drag)
         waifuDiv.addEventListener('mousedown', (e) => {
             isDragging = true;
             state = 'dragging';
             playAnimation(framesPinched, 150); 
             waifuDiv.style.transform = "scaleX(1)"; 
+            
             offsetX = e.clientX - x;
             offsetY = e.clientY - y;
+            
+            // Record the exact pixel where you first pressed down
+            startDragX = e.clientX;
+            startDragY = e.clientY;
+            
             waifuDiv.style.cursor = 'grabbing';
         });
 
@@ -178,24 +193,37 @@
             }
         });
 
-        window.addEventListener('mouseup', () => {
+        // MOUSE UP (End of a click OR drag)
+        window.addEventListener('mouseup', (e) => {
             if (isDragging) {
                 isDragging = false;
                 waifuDiv.style.cursor = 'grab';
-                state = 'falling';
-                velocityY = 0; 
-                playAnimation(framesFall, 200);
-                ipcRenderer.send('set-ignore-mouse-events', true, { forward: true });
+                
+                // Calculate how far the mouse actually moved
+                let movedX = Math.abs(e.clientX - startDragX);
+                let movedY = Math.abs(e.clientY - startDragY);
+
+                // If you moved the mouse less than 5 pixels, it was just a CLICK!
+                if (movedX < 5 && movedY < 5) {
+                    state = 'idle'; // Put her in idle so the click events can work
+                    playAnimation(framesIdle, 400);
+                } else {
+                    // You moved her a lot, so you actually dragged and dropped her
+                    state = 'falling';
+                    velocityY = 0; 
+                    playAnimation(framesFall, 200);
+                }
+                
+                // Note: We removed the ghost mode toggle here so Double-Clicks can work!
             }
         });
 
-        // --- NEW: SINGLE CLICK TO PET ---
+        // --- SINGLE CLICK TO PET ---
         waifuDiv.addEventListener('click', () => {
             if (!isDragging && state === 'idle') {
-                state = 'petting'; // Temporarily stop physics
-                playAnimation(framesPetAction, 150); // Play your Panda animation!
+                state = 'petting'; 
+                playAnimation(framesPetAction, 150); 
                 
-                // Go back to idle after 3 seconds
                 setTimeout(() => { 
                     if(state === 'petting') { 
                         state = 'idle'; 
@@ -205,7 +233,7 @@
             }
         });
 
-        // DOUBLE CLICK TO TALK
+        // --- DOUBLE CLICK TO TALK ---
         waifuDiv.addEventListener('dblclick', () => {
             state = 'idle';
             playAnimation(framesWatchAction, 400); 
