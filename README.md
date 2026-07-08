@@ -1,4 +1,4 @@
-# Project Tuba 🌸
+# Project Nusrat 🌸
 
 **An AI-powered, physics-driven desktop companion built with Electron and Gemini 2.5 Flash.**
 
@@ -85,7 +85,7 @@ Project Nusrat is designed to be interactive without getting in the way of your 
 
 ## 📂 Folder Structure
 ```text
-Project-Tuba/
+Project-Nusrat/
 ├── backend/
 │   └── server.py          # Flask & Socket.IO server, Gemini API logic
 ├── frontend/
