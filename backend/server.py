@@ -1,7 +1,7 @@
 import os
 import subprocess
 import pygame
-import time  # <-- This is the new import we needed!
+import time
 import speech_recognition as sr
 import google.generativeai as genai
 from flask import Flask
@@ -14,16 +14,16 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # ==========================================
-# 2. SETUP GEMINI AI (Tuba's Brain)
+# 2. SETUP GEMINI AI (Brain)
 # ==========================================
 # PUT YOUR NEW, SAFE GEMINI API KEY HERE!
 genai.configure(api_key="YOUR_API_KEY") 
 
-# Using the 2.5 Flash model you requested!
+# Using the 2.5 Flash model!
 model = genai.GenerativeModel('gemini-2.5-flash') 
 
 # ==========================================
-# 3. SPEECH RECOGNITION (Tuba's Ears)
+# 3. SPEECH RECOGNITION (Ears)
 # ==========================================
 recognizer = sr.Recognizer()
 
@@ -34,22 +34,19 @@ def listen_and_think():
         print("\n🎤 LISTENING! Speak into your microphone now...")
         
         try:
-            # Listen to your voice (waits up to 5 seconds for you to start talking)
             audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
             print("Processing your speech...")
             
-            # Convert voice to text
             user_text = recognizer.recognize_google(audio)
             print(f"Abid said: {user_text}")
             
-            # Ask Gemini!
             print("Thinking...")
             response = model.generate_content(
-                f"You are Tuba, a sweet, helpful desktop companion. Keep your answer short (1-2 sentences). Abid says: {user_text}"
+                f"You are Nusrat, a sweet, helpful desktop companion. Keep your answer short (1-2 sentences). Abid says: {user_text}"
             )
             
             ai_text = response.text
-            print(f"Tuba says: {ai_text}")
+            print(f"Nusrat says: {ai_text}")
             return ai_text
 
         except sr.WaitTimeoutError:
@@ -69,19 +66,14 @@ def handle_connect():
 
 @socketio.on('process_voice')
 def handle_voice(data):
-    # When you Double-Click her, it sends 'manual_trigger'
     if data.get('text') == 'manual_trigger':
         
-        # 1. Tell the speech bubble she is listening
         socketio.emit('response', {'text': 'Listening... 🎤'})
         
-        # 2. Turn on the mic and get Gemini's answer
         ai_response = listen_and_think()
         
-        # 3. Send the final answer to the speech bubble
         socketio.emit('response', {'text': ai_response})
         
-        # 4. Make her jump for joy!
         socketio.emit('expression', {'mood': 'happy'})
 
         # ==========================================
@@ -90,10 +82,8 @@ def handle_voice(data):
         try:
             print("Generating voice audio...")
             
-            # 1. Clean the text so quotes/symbols don't break the Edge-TTS command
             safe_text = ai_response.replace('"', '').replace("'", "").replace('\n', ' ')
             
-            # 2. Delete the old audio file so she doesn't accidentally repeat herself
             if os.path.exists("voice.mp3"):
                 os.remove("voice.mp3")
 
@@ -103,17 +93,14 @@ def handle_voice(data):
             command = f'python -m edge_tts --voice en-US-AnaNeural --rate=+10% --pitch=+15Hz --text "{safe_text}" --write-media voice.mp3'
             os.system(command)
             
-            # 4. VERY IMPORTANT: Give Windows half a second to actually save the file!
             time.sleep(0.5)
             
-            # 5. Play the audio
             if os.path.exists("voice.mp3"):
                 print("Playing audio out loud...")
                 pygame.mixer.init()
                 pygame.mixer.music.load("voice.mp3")
                 pygame.mixer.music.play()
 
-                # Wait for her to finish speaking
                 while pygame.mixer.music.get_busy():
                     pygame.time.Clock().tick(10)
                     
@@ -125,5 +112,5 @@ def handle_voice(data):
             print(f"Voice Error: {e}")
 
 if __name__ == '__main__':
-    print("Starting Tuba's Server on port 5000...")
+    print("Starting Nusrat's Server on port 5000...")
     socketio.run(app, port=5000)
