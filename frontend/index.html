@@ -19,16 +19,16 @@
     background-repeat: no-repeat;
     background-position: center bottom;
     
-    position: absolute; /* Absolute allows X/Y coordinates */
-    top: 0px;  /* Changed from bottom to top! */
+    position: absolute; 
+    top: 0px; 
     left: 0px; 
     
-    -webkit-app-region: no-drag; /* We will handle dragging in JS now */
+    -webkit-app-region: no-drag; 
     cursor: grab;
     z-index: 1000;
 }
 
-        /* NEW: Breathing and slight tilting */
+       
         @keyframes idle {
             0%, 100% { 
                 transform: translateY(0px) rotate(0deg) scaleY(1); 
@@ -40,30 +40,28 @@
 
         @keyframes breathe {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); /* Expands slightly */ }
+            50% { transform: scale(1.02);}
         }
 
 
         #bubble {
     position: absolute;
-    /* CHANGE 1: Move it down so it is visible inside the window */
     bottom: 50px; 
     left: 50%;
     transform: translateX(-50%);
     
-    /* CHANGE 2: Make it look like a speech box */
     background: rgba(255, 255, 255, 0.9);
     padding: 15px;
     border-radius: 15px;
-    border: 2px solid #ff69b4; /* Pink border */
+    border: 2px solid #ff69b4; 
     
-    display: none; /* Hidden by default */
+    display: none; 
     font-family: sans-serif;
     font-size: 16px;
     font-weight: bold;
     color: #333;
     text-align: center;
-    width: 250px; /* Wider text area */
+    width: 250px;
     z-index: 1000;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
@@ -157,7 +155,7 @@
         let offsetX = 0;
         let offsetY = 0;
         
-        // NEW: Variables to track if you actually dragged her or just clicked
+        
         let startDragX = 0; 
         let startDragY = 0;
 
@@ -167,7 +165,7 @@
             if (!isDragging) ipcRenderer.send('set-ignore-mouse-events', true, { forward: true });
         });
 
-        // MOUSE DOWN (Start of a click OR drag)
+       
         waifuDiv.addEventListener('mousedown', (e) => {
             isDragging = true;
             state = 'dragging';
@@ -177,7 +175,6 @@
             offsetX = e.clientX - x;
             offsetY = e.clientY - y;
             
-            // Record the exact pixel where you first pressed down
             startDragX = e.clientX;
             startDragY = e.clientY;
             
@@ -193,28 +190,23 @@
             }
         });
 
-        // MOUSE UP (End of a click OR drag)
         window.addEventListener('mouseup', (e) => {
             if (isDragging) {
                 isDragging = false;
                 waifuDiv.style.cursor = 'grab';
                 
-                // Calculate how far the mouse actually moved
                 let movedX = Math.abs(e.clientX - startDragX);
                 let movedY = Math.abs(e.clientY - startDragY);
 
-                // If you moved the mouse less than 5 pixels, it was just a CLICK!
                 if (movedX < 5 && movedY < 5) {
-                    state = 'idle'; // Put her in idle so the click events can work
+                    state = 'idle';
                     playAnimation(framesIdle, 400);
                 } else {
-                    // You moved her a lot, so you actually dragged and dropped her
                     state = 'falling';
                     velocityY = 0; 
                     playAnimation(framesFall, 200);
                 }
                 
-                // Note: We removed the ghost mode toggle here so Double-Clicks can work!
             }
         });
 
@@ -346,7 +338,6 @@
             // When she is on the FLOOR
             if (state === 'idle') {
                 if (chance < 0.20) {
-                    // --- NEW: Force her to sprint all the way off screen so she HITS A WALL! ---
                     targetX = (Math.random() > 0.5) ? window.innerWidth + 200 : -200; 
                     state = 'running';
                     playAnimation(framesRun, 100);
