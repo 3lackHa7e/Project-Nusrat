@@ -2,10 +2,8 @@ const { app, BrowserWindow, screen, ipcMain } = require('electron');
 const path = require('path');
 
 function createWindow () {
-    // 1. Get the size of your actual monitor
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-    // 2. Make the window fill the whole screen
     const win = new BrowserWindow({
         width: width,
         height: height,
@@ -21,7 +19,6 @@ function createWindow () {
 
     win.loadFile('index.html');
     
-    // Default: Ignore mouse so you can click your desktop behind her
     win.setIgnoreMouseEvents(true, { forward: true });
 }
 
